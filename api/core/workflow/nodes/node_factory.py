@@ -113,7 +113,6 @@ class DifyNodeFactory(NodeFactory):
                 code_providers=self._code_providers,
                 code_limits=self._code_limits,
             )
-
         if node_class is VariableAssignerNode:
             return VariableAssignerNode(
                 id=node_id,
