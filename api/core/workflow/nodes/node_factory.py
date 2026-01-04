@@ -1,16 +1,19 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, final
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, TypeAlias, final
 
 from typing_extensions import override
 
 from configs import dify_config
 from core.helper.code_executor.code_executor import CodeExecutor
 from core.helper.code_executor.code_node_provider import CodeNodeProvider
+from core.workflow.conversation_variable_updater import ConversationVariableUpdater
 from core.workflow.enums import NodeType
 from core.workflow.graph import NodeFactory
 from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.code.code_node import CodeNode
 from core.workflow.nodes.code.limits import CodeNodeLimits
+from core.workflow.nodes.variable_assigner.common.impl import conversation_variable_updater_factory
+from core.workflow.nodes.variable_assigner.v2 import VariableAssignerNode
 from libs.typing import is_str, is_str_dict
 
 from .node_mapping import LATEST_VERSION, NODE_TYPE_CLASSES_MAPPING
@@ -18,6 +21,8 @@ from .node_mapping import LATEST_VERSION, NODE_TYPE_CLASSES_MAPPING
 if TYPE_CHECKING:
     from core.workflow.entities import GraphInitParams
     from core.workflow.runtime import GraphRuntimeState
+
+_CONV_VAR_UPDATER_FACTORY: TypeAlias = Callable[[], ConversationVariableUpdater]
 
 
 @final
@@ -37,6 +42,7 @@ class DifyNodeFactory(NodeFactory):
         code_executor: type[CodeExecutor] | None = None,
         code_providers: Sequence[type[CodeNodeProvider]] | None = None,
         code_limits: CodeNodeLimits | None = None,
+        conv_var_updater_factory: _CONV_VAR_UPDATER_FACTORY = conversation_variable_updater_factory,
     ) -> None:
         self.graph_init_params = graph_init_params
         self.graph_runtime_state = graph_runtime_state
@@ -54,6 +60,7 @@ class DifyNodeFactory(NodeFactory):
             max_string_array_length=dify_config.CODE_MAX_STRING_ARRAY_LENGTH,
             max_object_array_length=dify_config.CODE_MAX_OBJECT_ARRAY_LENGTH,
         )
+        self._conv_var_updater_factory = conv_var_updater_factory
 
     @override
     def create_node(self, node_config: dict[str, object]) -> Node:
@@ -105,6 +112,15 @@ class DifyNodeFactory(NodeFactory):
                 code_executor=self._code_executor,
                 code_providers=self._code_providers,
                 code_limits=self._code_limits,
+            )
+
+        if node_class is VariableAssignerNode:
+            return VariableAssignerNode(
+                id=node_id,
+                config=node_config,
+                graph_init_params=self.graph_init_params,
+                graph_runtime_state=self.graph_runtime_state,
+                conv_var_updater_factory=self._conv_var_updater_factory,
             )
 
         return node_class(
