@@ -102,6 +102,14 @@ The `.env.example` file provided in the Docker setup is extensive and covers a w
    - `VECTOR_STORE`: Type of vector database (e.g., `weaviate`, `milvus`).
    - Specific settings for each vector store like `WEAVIATE_ENDPOINT`, `MILVUS_URI`.
 
+1. **Ollama LLM Configuration** (Optional):
+
+   - To use Ollama as a local LLM inference server, set `OLLAMA_PORT` (default: 11434) in your `.env` file.
+   - Start Ollama with: `docker compose --profile ollama up -d ollama`
+   - Ollama will be available at `http://ollama:11434` within Docker network or `http://localhost:11434` from the host.
+   - Models can be pulled using: `docker compose exec ollama ollama pull <model-name>` (e.g., `ollama pull llama2`)
+   - Configure Dify to use Ollama by setting the Base URL to `http://ollama:11434` in the Dify console.
+
 1. **CORS Configuration**:
 
    - `WEB_API_CORS_ALLOW_ORIGINS`, `CONSOLE_CORS_ALLOW_ORIGINS`: Settings for cross-origin resource sharing.
